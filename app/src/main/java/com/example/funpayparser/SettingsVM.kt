@@ -2,10 +2,8 @@ package com.example.funpayparser
 
 import android.annotation.SuppressLint
 import android.app.Application
-import android.content.Context
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
