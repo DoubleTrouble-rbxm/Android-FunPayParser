@@ -3,6 +3,7 @@ package com.example.funpayparser
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,10 +44,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(padding: PaddingValues) {
     val vm: SettingsVM = viewModel()
     Column(
-        modifier = Modifier.fillMaxSize().statusBarsPadding()
+        modifier = Modifier.padding(padding).fillMaxSize()
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             var text by remember { mutableStateOf("") }

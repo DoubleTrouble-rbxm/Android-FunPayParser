@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.funpayparser.ui.theme.Purple40
@@ -50,6 +52,18 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+class LotsVMFactory(
+    private val application: Application,
+    private val settingsVM: SettingsVM
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(LotsVM::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return LotsVM(application, settingsVM) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
 
 sealed class LotsUIState {
     object Loading: LotsUIState()
@@ -58,7 +72,7 @@ sealed class LotsUIState {
 }
 
 @SuppressLint("StaticFieldLeak")
-class LotsVM(application: Application) : AndroidViewModel(application) {
+class LotsVM(application: Application, private val settingsVM: SettingsVM) : AndroidViewModel(application) {
     private val context = application.applicationContext
     var refreshTimer = mutableStateOf(30)
         private set
@@ -91,7 +105,7 @@ class LotsVM(application: Application) : AndroidViewModel(application) {
                 val parsed = withContext(Dispatchers.IO) {
                     lotsParser()
                 }
-                uiState.value = LotsUIState.Success(parsed)
+                uiState.value = LotsUIState.Success(filterLots(parsed))
                 isButtonEnabled.value = true
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -99,6 +113,12 @@ class LotsVM(application: Application) : AndroidViewModel(application) {
                 isButtonEnabled.value = true
             }
         }
+    }
+
+    fun filterLots(lots: List<Lot>) = lots.filter {
+        it.price <= settingsVM.maxPrice.doubleValue &&
+                it.quantity >= settingsVM.minQuantity.intValue &&
+                it.reviewsCount >= settingsVM.minReviews.intValue
     }
 
     init {
@@ -115,9 +135,9 @@ class LotsVM(application: Application) : AndroidViewModel(application) {
 }
 
 @Composable
-fun LotsBox(vm: LotsVM = viewModel()) {
-    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(modifier = Modifier.width(400.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+fun LotsBox(vm: LotsVM = viewModel(), padding: PaddingValues) {
+    Column(modifier = Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
             Text("До обновления: ${vm.refreshTimer.value} сек")
             IconButton(
                 onClick = { vm.startAutoRefresh() },
@@ -160,7 +180,7 @@ fun LotsColumn(lots: List<Lot>) {
         contentAlignment = Alignment.Center
     ) {
         LazyColumn(
-            modifier = Modifier.size(400.dp)
+            modifier = Modifier.height(400.dp).fillMaxWidth()
                 .background(Color.LightGray)
         ) {
             items(lots) { lot ->
@@ -186,4 +206,11 @@ fun LotCard(lot: Lot) {
             )
         }
     }
+}
+@Composable
+fun MainScreen(application: Application, padding: PaddingValues) {
+    val settingsVM: SettingsVM = viewModel()
+    val lotsVM: LotsVM = viewModel(factory = LotsVMFactory(application, settingsVM))
+
+    LotsBox(vm = lotsVM, padding = padding)
 }
